@@ -1,5 +1,7 @@
 import argparse
-from langchain.vectorstores.chroma import Chroma
+import time
+
+from langchain_chroma import Chroma
 from langchain.prompts import ChatPromptTemplate
 from langchain_community.llms.ollama import Ollama
 
@@ -28,6 +30,9 @@ def main():
 
 
 def query_rag(query_text: str):
+    start_time = time.time()
+    print(f"Start time: {start_time}")
+
     # Prepare the DB.
     embedding_function = get_embedding_function()
     db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embedding_function)
@@ -44,8 +49,22 @@ def query_rag(query_text: str):
     response_text = model.invoke(prompt)
 
     sources = [doc.metadata.get("id", None) for doc, _score in results]
-    formatted_response = f"Response: {response_text}\nSources: {sources}"
-    print(formatted_response)
+    import pandas as pd
+
+    # Create a DataFrame with the response and sources
+    data = {
+        "Header": [query_text],
+        "Content": [response_text]
+        # "Content": [", ".join(sources)]
+    }
+    df = pd.DataFrame(data)
+
+    # Export the DataFrame to an .xlsx file
+    df.to_excel("output/output.xlsx", index=False)
+    end_time = time.time()
+    print(f"End time: {end_time}")
+    time_taken = end_time - start_time
+    print(f"Time taken to export to Excel: {time_taken} seconds")
     return response_text
 
 
